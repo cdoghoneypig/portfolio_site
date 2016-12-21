@@ -1,0 +1,425 @@
+import ddf.minim.*;
+
+Minim minim;
+AudioPlayer[] notes;
+
+String[] note_letters;
+PImage[] sky_tiles;
+
+PImage target_image_sad;
+PImage target_image_happy;
+PImage avatar_image;
+
+Target[] AllTargets;
+Selector[] AllSelectors;
+Avatar avatar;
+
+int target_landing_strip = 450;
+float target_rotate_inc = .02;
+float Selector_radius = 30;
+float Selector_radius_squared = pow(30,2);
+float altitude = 0;
+float rise_rate = 0;
+float max_avatar_y = 400;
+float min_avatar_y = 20;
+float map_offset = 667;
+float move_zone_size = 30;
+
+int frames_between_target_playback = 90;
+int cur_target = 0;
+
+
+void setup() {  
+    frameRate(30);
+    size(375, 667);
+    background(100,100,200);
+    
+    target_image_sad = loadImage("note-sad2.png");
+    target_image_happy = loadImage("note-happy2.png");
+    avatar_image = loadImage("balloon2.png");
+    
+    sky_tiles = new PImage[4];
+    sky_tiles[0] = loadImage("sky_drawn_1.png");
+    sky_tiles[1] = loadImage("sky_drawn_2.png");
+    sky_tiles[2] = loadImage("sky_drawn_3.png");
+    sky_tiles[3] = loadImage("sky_drawn_4.png");
+    
+    
+    //load sounds
+    minim = new Minim(this);
+    notes = new AudioPlayer[4];
+    notes[0] = minim.loadFile("piano00040.mp3");
+    notes[1] = minim.loadFile("piano00044.mp3");
+    notes[2] = minim.loadFile("piano00047.mp3");
+    notes[3] = minim.loadFile("piano00052.mp3");
+    //println(notes.length,"sound files loaded");
+    
+    //construct selectors
+    AllSelectors = new Selector[4];
+    AllSelectors[0] = new Selector(30,600,0);
+    AllSelectors[1] = new Selector(108,600,1);
+    AllSelectors[2] = new Selector(186,600,2);
+    AllSelectors[3] = new Selector(264,600,3);
+    
+    //construct target
+   //xpos, ypos, note, solved, velocity, direction
+    AllTargets = new Target[6];
+    AllTargets[0] = new Target(400,200,rand_note(),0,2,PI-1,60);
+    AllTargets[1] = new Target(-100,200,rand_note(),1,2,PI-1,60);
+    AllTargets[2] = new Target(-100,200,rand_note(),1,2,PI-1,60);
+    AllTargets[3] = new Target(-100,200,rand_note(),1,2,PI-1,60);
+    AllTargets[4] = new Target(-100,200,rand_note(),1,2,PI-1,60);
+    AllTargets[5] = new Target(-100,200,rand_note(),1,2,PI-1,60);
+    
+    avatar = new Avatar(60,max_avatar_y - 5);
+}
+
+
+
+//main loop
+void draw(){
+  
+  updateSky();
+
+  avatar.update();
+  avatar.display();
+
+  for (Target atarget : AllTargets) {
+    atarget.update();
+    atarget.display();
+  }
+
+  for (Selector aselector : AllSelectors) {
+  aselector.update();
+  aselector.display();
+  }
+}
+
+
+//
+//       SKY
+//
+
+void updateSky(){
+  //slow the rise rate a bit
+  rise_rate = constrain(rise_rate*.99 + fall_rate(altitude), -1, 4);
+  //println(rise_rate);
+  
+  //update the altitude
+  altitude = constrain(altitude + rise_rate, 0 ,999999);
+  
+  
+  if (avatar.ypos > max_avatar_y - move_zone_size) {
+  map_offset = constrain(map_offset + rise_rate,height,9999);
+  }
+  
+  if (avatar.ypos < min_avatar_y + move_zone_size) {
+  map_offset = constrain(map_offset + rise_rate,height,9999);
+  }
+    
+  background(10,10,10);
+  //draw the sky in the right place
+  for (int i = 0; i < sky_tiles.length; i += 1 ) {
+    image(sky_tiles[i],-12, (-1000 * (i+1)) + map_offset);
+  }
+  
+  //image(skyBG1,-12,-1000+map_offset);
+  //image(skyBG2,-12,-2000+map_offset);
+  //image(skyBG3,-12,-3000+map_offset);    
+  //speedometer();
+  altometer();
+}
+
+//
+//       AVATAR
+//
+
+class Avatar{
+ float xpos, ypos, angle;
+  
+  Avatar (float x, float y){
+    xpos = x;
+    ypos = y;
+    angle = 1.5 * PI;
+  }
+ 
+  void update(){
+   //println(ypos, max_avatar_y, min_avatar_y);
+    if (ypos < max_avatar_y && ypos > min_avatar_y) {
+    ypos = constrain(ypos - rise_rate, min_avatar_y+1, max_avatar_y-1);
+   }
+   //some x movement would be good too, especially with some rotation
+   
+  }
+  
+  void display(){
+    //add rotation with angle here
+    image(avatar_image,xpos,ypos); 
+    
+   
+  }
+}
+
+//
+//       SELECTOR
+//
+  
+
+
+class Selector {
+  //for now they have fixed location and are just a variable note
+  int note;
+  float xpos, ypos;
+  String note_name;
+  //initiate selector
+  
+  Selector (float x, float y, int n){
+    xpos = x;
+    ypos = y;
+    note = n;    
+    note_name = get_note_name(note);
+      
+  }
+
+  void update(){
+    //when you need to update the selector...
+    //if (notes[note].position() == notes[note].length()){
+    //  notes[note].rewind();
+    //}
+  } 
+  
+  void display(){
+    fill(210,70,50);
+    stroke(10);
+    strokeWeight(3);
+    ellipse(xpos+30,ypos+30,60,60);
+    textSize(32);
+    fill(10);
+    textAlign(LEFT);
+    text(note_name, xpos + 60/2 - 12, ypos + 60/2 + 12);
+
+  }
+  
+  void clicked(){
+    notes[note].rewind();
+    notes[note].play();
+    if (note == AllTargets[cur_target].note){
+      //WINNER section, in case of correct match
+      AllTargets[cur_target].solved = 1;
+      AllTargets[cur_target].velocity += 2;
+      if (cur_target < 5) {cur_target += 1;} else {cur_target=0;}
+      AllTargets[cur_target] = new Target(420,200,rand_note(),0,2,PI-1,60);
+      rise_rate += 1;      
+    }
+    else{
+     //incorrect answer result
+     //the target speeds up a bit
+     AllTargets[cur_target].velocity += 1;
+    }
+  }
+    
+}
+
+//
+//       TARGET
+///
+
+class Target {
+  float ypos, xpos, direction, velocity, bubble_radius;
+  int note, solved, repeat_timer;
+  //Target constructor  
+  Target (float x, float y, int n, int s, float v, float d, int r){
+    xpos = x;
+    ypos = y;
+    velocity = v;
+    direction = d;
+    note = n;
+    solved = s;
+    repeat_timer = r;    
+    bubble_radius = -1;
+  }
+  
+  void update() {   
+    if (xpos < - 50){
+      //target not active
+      return;
+    }
+    
+    if (xpos < -10) {
+      if (solved == 0){
+      //player got this one wrong and it wandered off
+      if (cur_target < 5) {cur_target += 1;} else {cur_target=0;}
+      AllTargets[cur_target] = new Target(400,200,rand_note(),0,2,PI-1,60);
+      xpos = -100;
+      }
+    }
+    
+    //first, move the target
+    float x_inc = velocity*cos(direction);
+    float y_inc = velocity*sin(direction);
+    
+    xpos += x_inc;
+    ypos += y_inc;
+    
+    if (solved == 1){
+      direction += bool_to_neg(direction < 4.5) * target_rotate_inc;
+    }
+    else{
+      //so if you're unsolved...
+      //if in the middle of the screen, level out
+      if (xpos > 100 && xpos < 300){
+        if (y_inc*60 + ypos > target_landing_strip ){
+          direction += target_rotate_inc;
+        }
+        else{
+          direction -= target_rotate_inc;
+        } 
+      }
+      //if you're at the far left...and unsolved
+      if (xpos < 100){
+        direction += bool_to_neg(direction < 2) * target_rotate_inc;
+      }
+    }
+    
+    //quite helpful for debugging target motion/direction shifts
+    //direction_indicator(x_inc,y_inc);
+    
+    
+    //second, make your sound sometimes
+    if (solved == 0){ 
+      repeat_timer -= 1;
+      if (repeat_timer == 0){
+        notes[note].rewind();
+        notes[note].play();
+        repeat_timer = frames_between_target_playback;
+        bubble_radius = 8;
+      }
+    }
+    
+    //third expand your cute bubble
+    if (bubble_radius > -1){
+     bubble_radius += 1; 
+    }
+    
+    //fourth, deactivate when you're off screen
+    //should rewrite this if so it's xpos - bounding box
+    if (xpos < -20){
+      xpos = -100;
+    }
+      
+  }
+  
+  void display(){
+    if (solved == 0) {
+    // radiate a circle when you play your note
+      if (bubble_radius == 100){
+        bubble_radius = -1;
+      }
+      if (bubble_radius > -1 && bubble_radius < 100) {
+        float center_x = xpos + target_image_sad.width/2;
+        float center_y = ypos + target_image_sad.height/2 + 30;
+        noFill();
+        stroke(240,240,200,100-bubble_radius);
+        strokeWeight(3);
+        ellipse(center_x,center_y,bubble_radius,bubble_radius);
+        ellipse(center_x,center_y,bubble_radius-10,bubble_radius-10);       
+      }
+      //now draw your self
+      image(target_image_sad,xpos,ypos);
+  
+    }
+      else {image(target_image_happy,xpos,ypos);}
+    }
+}
+
+
+
+//
+//       MISC FUNCTIONS
+//
+
+
+
+void mouseClicked(){
+  for (Selector aselector : AllSelectors){
+    //xpos and ypos are the location of the upper left corner of the image!!
+    float disX = aselector.xpos+Selector_radius - mouseX;
+    float disY = aselector.ypos+Selector_radius - mouseY;    
+    if (sqrt(sq(disX) + sq(disY)) < Selector_radius){  
+      //you clicked inside this selector!
+     aselector.clicked();
+   }
+ }
+}
+
+int bool_to_neg(boolean cond){
+ if (cond) {
+   return 1;}
+   else{
+     return -1;}
+  
+}
+
+int rand_note(){
+  return int(random(notes.length)); 
+}
+
+float fall_rate(float alt){
+  
+  float fr = -.02; 
+  if (alt < 1000) {fr = -.002;} 
+  else if (alt > 1000 && alt < 2000) {fr = -.005;}
+  else if (alt > 2000 && alt < 3000) {fr = -.008;}
+  else if (alt > 3000) {fr = -.01;}
+  //println(alt,fr);
+  return fr;
+ }
+
+String get_note_name(int note_id){
+  String s = null;
+  switch (note_id){
+   case 0: s = "C"; break;
+   case 1: s = "E"; break;
+   case 2: s = "G"; break;
+   case 3: s = "C"; break;
+   }
+   return s;  
+}
+
+void direction_indicator(float xgo, float ygo){
+      //direction indicator for debugging
+    fill(255);
+    stroke(0);
+    strokeWeight(1);
+    ellipse(200,150,20,20);
+    line(200,150,200+xgo*10,150+ygo*10);
+}
+
+
+void speedometer(){
+  //speedometer of rise_rate for debugging
+  fill(255);
+  noStroke();
+  arc(50,50,40,40,PI,TAU);
+  stroke(10,10,10);
+  strokeWeight(1);
+  float meter_angle = rise_rate / 10 * PI + PI;
+  line(50, 50, 50 + 20*cos(meter_angle), 50 + 20*sin(meter_angle));
+}
+
+void altometer(){
+  //fill(255);
+  //text(round(alt),200,50);
+  fill(220);
+  textSize(14);
+  text("Altimeter",300,110);
+  
+  stroke(200);
+  strokeWeight(1);
+  noFill();
+  rect(320,90,20,-51);
+  noStroke();
+  fill(10,255,10,200);
+  rect(320,90,20,-altitude/60);
+  
+}

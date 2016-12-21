@@ -1,0 +1,416 @@
+//multiple playdots
+//color injection when you get the question right
+//happy circle over purple means you got it right, maybe a darker core
+//add note_confirm, variable to control fill opacity for the note's letter
+//to ghost in and out of the center
+// just use a float to control the x_pos or fade amount or text size or all of them
+//or pop in from screen right and back out again
+
+//when play_rad is > 90 start incrementing up a fill color on the circle
+
+import ddf.minim.*;
+
+Minim minim;
+AudioPlayer[] notes;
+
+PImage[] selector_hilites;
+PImage selector_image;
+PImage BG_image;
+PImage pause_image;
+
+Selector[] AllSelectors;
+Playdot playdot = new Playdot(0, 0, 30, 100,-2);
+    
+float score;
+//float[] stripetop = new float[50];
+//float[] stripebottom = new float[50];
+
+float dark_threshold = 190;
+
+//the playback indicator should be a separate object from playdot
+float playing_x = 10;
+float playing_y = 160;
+
+//this should be consolidated to one class object
+float note_confirm = 0;
+String last_note = get_note_name(playdot.note);
+
+int frames_between_target_playback = 90;
+
+int selector_image_y = 100;
+int selector_image_x = 20;
+
+int game_mode = 0;
+
+int score_origin = 537;
+// or set it to the left with -10
+
+void setup() {  
+    frameRate(30);
+    size(667, 375);
+    background(150,150,170);
+    
+    BG_image = loadImage("BG_gradient.png");
+    
+    selector_image = loadImage("light_piano2.png");
+    //top of the keyboard (or input image) is 
+    //total height - height of keyboard graphic - a margin
+    selector_image_y = height - selector_image.height - 0;
+    selector_image_x = round((width - selector_image.width)/2);
+    //println(selector_image_x,selector_image_y);
+    selector_image_x = 0;
+    selector_image_y = 207;
+    
+    //load sounds
+    minim = new Minim(this);
+    notes = new AudioPlayer[4];
+    notes[0] = minim.loadFile("piano00040.mp3");
+    notes[1] = minim.loadFile("piano00044.mp3");
+    notes[2] = minim.loadFile("piano00047.mp3");
+    notes[3] = minim.loadFile("piano00052.mp3");
+    //println(notes.length,"sound files loaded");
+    
+    //construct selectors
+    //hilite images first
+    selector_hilites = new PImage[3];
+    selector_hilites[0] = loadImage("light_hi_c.png");
+    selector_hilites[1] = loadImage("light_hi_e.png");
+    selector_hilites[2] = loadImage("light_hi_g.png");
+    //selector_hilites = new PImage[3];
+    //selector_hilites[0] = loadImage("dark_hi.png");
+    //selector_hilites[1] = loadImage("dark_hi.png");
+    //selector_hilites[2] = loadImage("dark_hi.png");
+    float hi_w = selector_hilites[0].width;
+    hi_w = 83;
+    
+    pause_image = loadImage("pause_button.png");
+    
+    
+    //then the selectors
+    AllSelectors = new Selector[4];
+    AllSelectors[0] = new Selector(selector_image_x,selector_image_x + hi_w,0, selector_hilites[0]);
+    AllSelectors[1] = new Selector(selector_image_x + hi_w*2,selector_image_x + hi_w*3,1, selector_hilites[1]);
+    AllSelectors[2] = new Selector(selector_image_x + hi_w*4,selector_image_x + hi_w*5,2, selector_hilites[2]);
+    AllSelectors[3] = new Selector(selector_image_x + hi_w*7,selector_image_x + hi_w*8,3, selector_hilites[0]);
+    
+    
+}
+
+
+
+//main loop
+void draw(){
+  
+  if (game_mode == 0) {
+    //background(250,250,210);
+    image(BG_image,0,0);
+  
+    playdot.update();
+    playdot.display();  
+  
+    
+    for (Selector aselector : AllSelectors) {
+    aselector.update();
+    aselector.display();
+    }
+    
+    image(selector_image,selector_image_x,selector_image_y);
+    
+    //score background rectangle
+    draw_menu_things();
+  
+    //difficulty scaling
+    frames_between_target_playback = int(98 - .3* playdot.radius); 
+    
+    note_confirmation_system();
+  }
+  if (game_mode == 1){
+   fill(0,0,0,5);
+   rect(0,0,width,height);
+   textSize(50);
+   textAlign(CENTER, CENTER);
+   fill(255);
+   text("WIN",width/2,height/2);
+   
+  }
+  
+  
+}
+
+
+
+
+
+//
+//                     SELECTOR
+//
+
+class Selector {
+  int note;
+  float x_left, x_right, y_top, y_bottom, glow;
+  String note_name;
+  PImage s_image;
+
+  //constructor for selector
+  Selector (float x1, float x2, int n, PImage a_pic){
+    x_left = x1;
+    x_right = x2;
+    y_top = selector_image_y;
+    y_bottom = selector_hilites[0].height + selector_image_y; 
+    note = n;    
+    note_name = get_note_name(note);     
+    glow = 0;
+    s_image = a_pic;
+  }
+
+  void update(){
+  //no updates done on the selector these days
+  if (glow > 0) {glow -= 5;}
+  
+  } 
+    
+  void display(){
+    //hilite the key if its playing
+    if (glow > 0) {
+      tint(255, glow);  // Display at half opacity
+      image(s_image,x_left,y_top);
+      noTint();
+    }
+    //rect(x_left, y_top, (x_right - x_left), (y_bottom - y_top) );
+  }
+  
+  void clicked(){
+    notes[note].rewind();
+    notes[note].play();
+    glow = 200;
+    if (note == playdot.note){
+      
+      //WINNER section, in case of correct match
+
+      //record what the last note was
+      last_note = get_note_name(note);
+      note_confirm = 100;
+
+      score += 1;
+      playdot.note = rand_note();
+      playdot.repeat_timer = frames_between_target_playback;
+      playdot.rad_delta += 3;
+      if (playdot.radius >= dark_threshold) {
+        playdot.darken += 15;
+      }
+      
+    }
+    else{
+     //incorrect answer result
+     playdot.rad_delta -= 1;
+     score -= .3;
+     
+    }
+  }
+    
+}
+
+//
+//     PLAYDOT
+//
+
+class Playdot {
+  //make it have multiple notes, up to 5!
+  int note, quiet, repeat_timer;
+  float radius, xpos, ypos, rad_delta, play_rad, play_rad_delta, darken;
+
+  //constructor
+  Playdot (int n, int q, int r, float rad, float rad_d) {
+     note = n;
+     quiet = q;
+     repeat_timer = r;
+     rad_delta = rad_d;
+     xpos = 363;
+     ypos = 100;
+     radius = rad;
+     play_rad = 30;
+     play_rad_delta = 0;
+     darken = 0;
+     
+   }
+   
+  void update() {
+    //modify rad_delta by a bit
+    
+    if (radius < 30) {
+      rad_delta = constrain(rad_delta * .99 + .1,-2,4);
+    }
+    else if (radius >= 30 && radius < 100) {
+      rad_delta = constrain(rad_delta * .95 - .008,-3,4);
+      
+    } else if (radius > 190) {
+      rad_delta = constrain(rad_delta * .95 - .008,-3,4);
+    }
+    else {
+     rad_delta = constrain(rad_delta * .95 -.02, -3, 4); 
+    }
+      
+    //modify the radius by rad_delta, but b/w 30 and 100
+    radius = constrain(radius+rad_delta,10,200);
+    
+    //the player ellipse update...
+    play_rad_delta = constrain(play_rad_delta - .122, -5, 5);
+    play_rad = constrain(play_rad + play_rad_delta, 0, 100);    
+    
+    //darken update
+    if (darken > 90) {
+     game_mode = 1; 
+    }
+    //debugging
+    //text(round(darken),100,100);
+    if (darken > 0) {
+    darken -= .1;
+    }
+    
+        
+        
+    //play sound
+    //if you're on quiet mode, you don't play music
+    if (quiet == 0){ 
+       //increment timer down by 1, eventually hitting zero
+       repeat_timer -= 1;
+       //debugging
+       //text(repeat_timer,200,200);
+       
+       //if you reach zero then play
+      if (repeat_timer == 0){
+        play_the_playdot();        
+        
+      }
+    }
+   }
+   
+   void display(){      
+     //outside circle
+     fill(0,0,0,2.55 * darken);
+     stroke(50,50,50,200); 
+     ellipse(xpos, ypos, 200, 200);
+     
+     //the playdot itself
+     fill(radius/3+100,100,200,200 - radius);
+     ellipse(xpos, ypos, radius, radius);
+     ellipse(xpos, ypos, radius - 10, radius - 10);
+     fill(255,0,0,200-(radius-30)*2);
+     
+     //the "i'm playing now" animation
+     
+     noFill();
+     stroke(150);
+     rect(playing_x -1 ,playing_y,31,-81);
+     noStroke();
+     fill(10,245,50,play_rad*2);
+     rect(playing_x,playing_y,30,-play_rad * .8);
+     //ellipse(playing_x - play_rad/2,playing_y, play_rad, play_rad);
+     
+   }
+}
+
+  
+
+//
+//       MISC FUNCTIONS
+//
+
+void mouseClicked(){
+  for (Selector aselector : AllSelectors){
+    if (mouseX > aselector.x_left && mouseX < aselector.x_right && mouseY > aselector.y_top) {            
+       //you clicked inside this selector!      
+       aselector.clicked();
+   }
+   //makeit play if you're clicking inside the playdot
+   float xdis = mouseX - playdot.xpos;
+   float ydis = mouseY - playdot.ypos;
+   if (sq(xdis) + sq(ydis) <= sq(playdot.radius)){
+     //you clicked the playdot!
+        play_the_playdot();
+   }
+   
+ }
+}
+
+int bool_to_neg(boolean cond){
+ if (cond) {
+   return 1;}
+   else{
+     return -1;}
+  
+}
+
+int rand_note(){
+  //don't play the same note!
+  int check_note = int(random(notes.length));
+  while (check_note == playdot.note) {
+    check_note = int(random(notes.length));
+  }
+  return check_note; 
+}
+
+
+String get_note_name(int note_id){
+  String s = null;
+  switch (note_id){
+   case 0: s = "C"; break;
+   case 1: s = "E"; break;
+   case 2: s = "G"; break;
+   case 3: s = "C"; break;
+   }
+   return s;  
+}
+
+
+void play_the_playdot() {
+  notes[playdot.note].rewind();
+  notes[playdot.note].play();
+  playdot.repeat_timer = frames_between_target_playback;
+  playdot.play_rad_delta = 5; 
+  //println(playdot.note);
+}
+
+void note_confirmation_system() {
+   //note confirmation
+  if (note_confirm > 0) {
+    note_confirm -= 4;
+  }
+  
+  //display note
+  fill(255,255,255,note_confirm*2);
+  textSize(40);
+  textAlign(CENTER,CENTER);
+  text(last_note, playdot.xpos, playdot.ypos - 5);
+  textAlign(LEFT,BOTTOM);
+  
+ 
+}
+
+void draw_menu_things(){
+  image(pause_image,10,10);
+
+  fill(255,255,255,100);
+  noStroke();
+  ////show score upper left
+  //rect(-10,-10,120,60,5);
+  //fill(0);
+  //textSize(24);
+  //text("Score "+nf(score,0,0),10,30);
+  //textSize(14);
+  //text("High Score 44.1",10,60); 
+  
+  //show score upper right
+  rect(score_origin,-10,score_origin + 130,70,5);
+  fill(0);
+  textSize(18);
+  text("Score "+nf(score,0,0),score_origin + 20,30);
+  textSize(12);
+  text("High Score  44.1",score_origin + 20,50); 
+  
+  
+  //show current scale on upper left
+  //upper right x position = 510
+  text("Major Triads",60,30);
+
+}

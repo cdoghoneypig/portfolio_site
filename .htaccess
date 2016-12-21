@@ -1,0 +1,10 @@
+RedirectMatch 301 /ux(.*) http://www.chukmoran.com$1
+
+ErrorDocument 401 http://www.chukmoran.com/err401.html
+ErrorDocument 403 http://www.chukmoran.com/err403.html
+ErrorDocument 404 http://www.chukmoran.com/err404.html
+ErrorDocument 500 http://www.chukmoran.com/err500.html
+
+## SITE REFERRER BANNING
+RewriteCond %{HTTP_REFERER} sharebutton.to [NC,OR]
+RewriteRule .* - [F]

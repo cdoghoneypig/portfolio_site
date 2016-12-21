@@ -1,0 +1,104 @@
+#fourohfour {
+    width: 6em;
+    margin: 0 auto;
+
+}
+
+
+#fourohfour h2{
+    /*font-family: 'Open Sans', arial, helvetica, sans-serif;*/
+    /*font-size: 10em;*/
+    letter-spacing: -10px;
+
+
+    
+    transition-timing-function: linear;
+    animation: hypnoticspin 6s infinite;
+
+    -webkit-transition-timing-function: linear;
+    -webkit-animation: hypnoticspin 6s infinite;
+
+}
+
+
+@keyframes hypnoticspin{
+0%{     
+        
+        letter-spacing: 0;
+        transform: rotateY(0deg);
+        
+}
+
+10%{     
+        
+        letter-spacing: inherit;
+        transform: rotateY(0deg);
+        
+}
+
+20%{    
+        
+        transform: rotateY(180deg);
+}
+
+50%{   
+        letter-spacing: 80px;
+        transform: rotateY(360deg);
+    }
+75%{     
+        letter-spacing: 10px;       
+        transform: rotateY(90deg);
+        
+}
+
+80%{
+        letter-spacing: -80px;
+        
+}
+
+100%{
+        letter-spacing: 0;
+        transform: rotateY(0deg);    
+        
+        
+}
+}
+
+@-webkit-keyframes hypnoticspin{
+0%{     
+        
+        letter-spacing: 0;
+        -webkit-transform: rotateY(0deg);
+}
+
+10%{     
+        
+        letter-spacing: inherit;
+        -webkit-transform: rotateY(0deg);
+}
+
+20%{    
+        
+        -webkit-transform: rotateY(180deg);
+}
+
+50%{   
+        letter-spacing: 80px;
+        -webkit-transform: rotateY(360deg);
+    }
+75%{     
+        letter-spacing: 10px;       
+        -webkit-transform: rotateY(90deg);
+        
+}
+
+80%{
+        letter-spacing: -80px;
+}
+
+100%{
+        letter-spacing: 0;
+        -webkit-transform: rotateY(0deg);    
+        
+}
+}

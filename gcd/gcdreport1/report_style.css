@@ -1,0 +1,143 @@
+/*
+Chart colors
+grey
+#999999
+maroon
+#66000
+brown
+#b45f06
+golden
+#ff9900
+pale yellow
+#ffd966
+light blue
+#6d9eeb
+dark blue
+#0b5394
+forest green
+#38761d
+*/
+
+
+
+/* Use the GCD main site's regular font stack. */
+body {
+    font-family: -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+                 "Cantarell", "Fira Sans", "Droid Sans",
+                 "Helvetica Neue", sans-serif;
+    font-size: 100%;
+    color: #333;
+}
+
+.report-body{
+    width: 70%;
+    margin: 0 15%;
+
+}
+
+div#logo_box {
+    width: 80%;
+    margin: 0 10%;
+    color: white;
+    background-color: #66E;
+    border-radius: 10px;
+    padding: 10px 0px;
+}
+
+img#logo {
+    margin: auto;
+    display: block;
+}
+
+.inline_chart {
+    display: inline-block;
+    width: 45%;
+    vertical-align: top;
+}
+
+.side_text {
+    display: inline-block;
+    width: 50%;
+    vertical-align: top;
+}
+
+h1 {
+    text-align: center;
+    /* Let the div padding handle this to match the image top */
+    margin-bottom: 0px;
+    /* Don't have too much space between this and the image */
+    margin-top: 5px;
+}
+
+#byline{
+    text-align: center;
+}
+
+#byline a{
+    color: white;
+    text-decoration: none;
+}
+
+h2{
+}
+
+h3{
+    font-family: 'Merriweather', Garamond, serif;
+    font-size: 1em;
+    color: #777;
+    line-height: 1em;
+
+}
+
+a{
+    color: #66E;
+}
+
+a:visited{
+    color:#777;
+}
+
+.chart{
+    /*box-shadow: 2px 5px 5px #666;*/
+    text-align: center;
+}
+
+
+.inline-table{
+    border-collapse: collapse;
+    width: 50%;
+    margin: 1em auto;
+}
+
+th, td {
+    text-align: left;
+    padding: 8px;
+}
+
+
+tr:nth-child(even){background-color: #f2f2f2}
+
+th {
+    background-color: #777;
+    color: white;
+}
+
+.section-break{
+    margin: 10px auto;
+    border-bottom: 10px solid transparent;
+    padding: 15px;
+    border-image: url(horizbar.png) 20 repeat;
+    width: 60%;
+}
+
+.infobox{
+    width:48%;
+    float: left;
+    
+}
+
+#gender{
+    margin: 1em auto;
+    display: block;
+}
